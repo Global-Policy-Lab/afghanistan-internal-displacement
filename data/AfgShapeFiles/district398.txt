@@ -1,0 +1,14 @@
+Afghanistan districts (398) shapefile
+Nils B. Weidmann, 2010
+
+Fields: 
+* PROV_34_NA: Province name (34 prov scheme)
+* DIST_34_NA: District name
+* PROVID: Province ID (compatible with AIMS district numbers)
+* DISTID: District ID (new, consistent numbering, in some instances NOT compatible with AIMS district numbers)
+
+Based on the AIMS 400 districts shapefile.
+Changes from 398 -> 400 districts:
+* created Sharak Hairatan district in the north of Kaldar district (Balkh province)
+* created Dilaram from Khash Rod district (Nimroz province)
+
