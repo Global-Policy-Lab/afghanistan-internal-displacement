@@ -43,11 +43,17 @@ save(myEvents, file = "/Users/xtai/Desktop/development/displacementProj/code/dat
 # update 10/20: also has side_a and side_b
 
 
-################## FIGURE 1
+################## FIGURE 1 --- run this after 1b_afgData
 # use this instead for district population --- taken from 7-7distritFEs2.R
 rm(list = ls())
 afghanShape <- sf::st_read("/Users/xtai/Dropbox/EventAnalysis/CodingWork_Rohan/DataTask/AFG_district_398/district398.shp", quiet = TRUE) %>% 
   sf::st_transform(crs = 32642)
+
+distInfo <- readRDS("/Users/xtai/Desktop/development/displacementProj/code/data/district_ids_with_info.rds")
+afghanShape <- afghanShape %>%
+  left_join(distInfo %>%
+              select(distid, TOTAL),
+            by = c("DISTID" = "distid"))
 
 ################### tower groups 
 towerGroups <- read.csv("/Users/xtai/Desktop/development/displacementProj/code/data/Final_Aggregated_GroupIDs_UTM42N.csv", stringsAsFactors = FALSE)

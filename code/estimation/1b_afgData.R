@@ -19,7 +19,7 @@ afghanShape <- sf::st_read("/Users/xtai/Dropbox/EventAnalysis/CodingWork_Rohan/D
 distIDmanual <- read.csv("/Users/xtai/Desktop/development/displacementProj/code/data/district_ids_withAIMS.csv", stringsAsFactors = FALSE) # I mapped these manually to AIMS
 afghanShape <- afghanShape %>%
   left_join(distIDmanual %>%
-              select(distid, AIMS_DIST_CODE),  # also include AIMS_DIST_CODE for later
+              select(distid, AIMS_DIST_CODE, provincialCapital),  # also include AIMS_DIST_CODE for later
             by = c("DISTID" = "distid"))
 
 distInfo <- openxlsx::read.xlsx("/Users/xtai/Dropbox/EventAnalysis/CodingWork_Rohan/DataTask/CSO Population by District.xlsx", sheet = "DIST_AGCHO_CODE") # 409 rows
@@ -61,8 +61,43 @@ distInfo <- mapping %>%
 
 # sum(unique(betaDistrictFE$AIMS_DIST_CODE) %in% distInfo$AIMS_DIST_CODE) # check --- all in
 
-afghanShape <- afghanShape %>%
-  left_join(distInfo,
+distIDmanual <- distIDmanual %>%
+  left_join(distInfo %>%
+              select(AIMS_DIST_CODE, TOTAL),
             by = "AIMS_DIST_CODE")
 
-saveRDS(districtInfo, "/data/tmp/xtai/data/district_ids_with_info.rds")
+
+#### regions: from Musa 
+NorthEasternAfghanistan <- c("Badakhshan", "Baghlan", "Kunduz", "Takhar")
+NorthWesternAfghanistan <- c("Balkh", "Faryab", "Jawzjan", "Samangan", "Sari Pul")
+CentralAfghanistan <- c("Kabul", "Kapisa", "Logar", "Panjsher", "Parwan", "Maydan Wardak")
+EasternAfghanistan <- c("Kunar", "Laghman", "Nangarhar", "Nuristan")
+WesternAfghanistan <- c("Badghis", "Bamyan", "Farah", "Ghor", "Hirat")
+SouthEasternAfghanistan <- c("Ghazni", "Khost", "Paktya", "Paktika")
+SouthWesternAfghanistan <- c("Daykundi", "Hilmand", "Kandahar", "Nimroz", "Uruzgan", "Zabul")
+
+regions <- data.frame(prov_name = c(NorthEasternAfghanistan, 
+                                    NorthWesternAfghanistan, 
+                                    CentralAfghanistan, 
+                                    EasternAfghanistan, 
+                                    WesternAfghanistan, 
+                                    SouthEasternAfghanistan, 
+                                    SouthWesternAfghanistan), 
+                      region = c(rep("NE", length(NorthEasternAfghanistan)),
+                                 rep("NW", length(NorthWesternAfghanistan)),
+                                 rep("C", length(CentralAfghanistan)),
+                                 rep("E", length(EasternAfghanistan)),
+                                 rep("W", length(WesternAfghanistan)),
+                                 rep("SE", length(SouthEasternAfghanistan)),
+                                 rep("SW", length(SouthWesternAfghanistan))),
+                      stringsAsFactors = FALSE
+)
+
+# sum(regions$prov_name %in% districtInfo$prov_name)
+# [1] 34
+
+distIDmanual <- distIDmanual %>%
+  left_join(regions, by = "prov_name")
+
+saveRDS(distIDmanual, "/Users/xtai/Desktop/development/displacementProj/code/data/district_ids_with_info.rds")
+
