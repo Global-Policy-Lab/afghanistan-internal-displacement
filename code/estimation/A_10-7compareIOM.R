@@ -1,7 +1,16 @@
 # This work is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.
 rm(list=ls()); gc()
 library(ggplot2); library(dplyr)
-load("/Users/xtai/Desktop/development/displacementProj/code/data/afghanShapeAllInfo.Rdata") # use TOTAL column --- this is CSO's total population estimate
+# load("/Users/xtai/Desktop/development/displacementProj/code/data/afghanShapeAllInfo.Rdata") # use TOTAL column --- this is CSO's total population estimate
+
+afghanShape <- sf::st_read("/Users/xtai/Dropbox/EventAnalysis/CodingWork_Rohan/DataTask/AFG_district_398/district398.shp", quiet = TRUE) %>% 
+  sf::st_transform(crs = 32642)
+
+distInfo <- readRDS("/Users/xtai/Desktop/development/displacementProj/code/data/district_ids_with_info.rds")
+afghanShape <- afghanShape %>%
+  left_join(distInfo %>%
+              select(distid, TOTAL),
+            by = c("DISTID" = "distid"))
 
 ############# CDR processing 
 districtDay <- read.csv("/data/afg_anon/displacement_metrics/percentage_migrated_per_district_day/district_day_metrics_k111_to_k120.csv")
@@ -74,6 +83,7 @@ IOMversionOutgoing <- IOM[-1, ] %>%
   mutate(Latitude = as.numeric(Latitude),
          Longitude = as.numeric(Longitude)) %>% # NAs because a few are NULL (3 obs)
   filter(!is.na(Latitude))
+# warnings here --- these are fine
 
 tmp <- sf::st_as_sf(IOMversionOutgoing, coords = c("Longitude", "Latitude"), 
                     crs = 4326) %>% 
@@ -110,7 +120,10 @@ outOutgoingExKabul <- CDRversionOutgoing %>%
   select(-PROVID) %>%
   filter(!is.na(IOM) & !is.na(CDR))
 
-png("/Users/xtai/Desktop/development/displacementProj/PNASpaper/fig6a.png", width = 10, height = 4.5, res = 300, units = "in")
+# png("/Users/xtai/Desktop/development/displacementProj/PNASpaper/fig6a.png", width = 10, height = 4.5, res = 300, units = "in")
+# pdf("/Users/xtai/Desktop/development/displacementProj/PNASpaper/fig6a.pdf", width = 10, height = 4.5)
+# pdf("/Users/xtai/Desktop/development/displacementProj/PNASpaper/fig6a_4-29.pdf", width = 10, height = 4.5) # this version: includes Kabul
+pdf("/Users/xtai/Desktop/development/displacementProj/PNASpaper/fig6a_5-3.pdf", width = 10, height = 4.5) # this version: excludes Kabul
 outOutgoingExKabul %>%
   # outOutgoing %>%
   tidyr::pivot_longer(!PROV_34_NA, names_to = "Source", values_to = "proportion") %>%
@@ -125,7 +138,8 @@ outOutgoingExKabul %>%
         legend.title = element_blank(),
         legend.text = element_text(size=14),
         axis.text=element_text(size=14),
-        axis.title=element_text(size=14))
+        axis.title=element_text(size=14)) +
+  scale_fill_discrete(labels = c("CDR migration", "IOM displacement")) # 4/29: new
 dev.off()
 
 ############################## 2. INCOMING (DESTINATION) ############################## 
@@ -168,6 +182,7 @@ IOMversionIncoming <- IOM[-1, ] %>%
   mutate(Latitude = as.numeric(Latitude),
          Longitude = as.numeric(Longitude)) %>% # NAs because a few are NULL (3 obs)
   filter(!is.na(Latitude))
+# warnings here --- these are fine
 
 tmp <- sf::st_as_sf(IOMversionIncoming, coords = c("Longitude", "Latitude"), 
                     crs = 4326) %>% 
@@ -204,7 +219,10 @@ outIncomingExKabul <- CDRversionIncoming %>%
   select(-PROVID) %>%
   filter(!is.na(IOM) & !is.na(CDR))
 
-png("/Users/xtai/Desktop/development/displacementProj/PNASpaper/fig6b.png", width = 10, height = 4.5, res = 300, units = "in")
+# png("/Users/xtai/Desktop/development/displacementProj/PNASpaper/fig6b.png", width = 10, height = 4.5, res = 300, units = "in")
+# pdf("/Users/xtai/Desktop/development/displacementProj/PNASpaper/fig6b.pdf", width = 10, height = 4.5)
+# pdf("/Users/xtai/Desktop/development/displacementProj/PNASpaper/fig6b_4-29.pdf", width = 10, height = 4.5) # this version: includes Kabul
+pdf("/Users/xtai/Desktop/development/displacementProj/PNASpaper/fig6b_5-3.pdf", width = 10, height = 4.5) # this version: excludes Kabul
 outIncomingExKabul %>%
   tidyr::pivot_longer(!PROV_34_NA, names_to = "Source", values_to = "proportion") %>%
   ggplot(aes(x = PROV_34_NA, y = proportion, fill = Source)) +
@@ -218,6 +236,45 @@ outIncomingExKabul %>%
         legend.title = element_blank(),
         legend.text = element_text(size=14),
         axis.text=element_text(size=14),
-        axis.title=element_text(size=14))
+        axis.title=element_text(size=14)) +
+  scale_fill_discrete(labels = c("CDR migration", "IOM displacement")) # 4/29: new
 dev.off()
 
+
+### correlations; versions including Kabul district
+outIncoming <- CDRversionIncoming %>%
+  select(destination_district, propByDist, PROVID) %>%
+  rename(CDR = propByDist) %>%
+  left_join(IOMversionIncoming %>%
+              select(-sumYearIOM) %>%
+              rename(IOM = propByDist),
+            by = c("destination_district" = "distid")) %>%
+  group_by(PROVID) %>%
+  summarize(IOM = sum(IOM, na.rm = TRUE),
+            CDR = sum(CDR, na.rm = TRUE)) %>%
+  left_join(afghanShape %>%
+              data.frame() %>%
+              select(PROVID, PROV_34_NA) %>%
+              unique()) %>%
+  select(-PROVID) %>%
+  filter(!is.na(IOM) & !is.na(CDR))
+
+outOutgoing <- CDRversionOutgoing %>%
+  select(district_id, propByDist, PROVID) %>%
+  rename(CDR = propByDist) %>%
+  left_join(IOMversionOutgoing %>%
+              select(-sumYearIOM) %>%
+              rename(IOM = propByDist),
+            by = c("district_id" = "distid")) %>%
+  group_by(PROVID) %>%
+  summarize(IOM = sum(IOM, na.rm = TRUE),
+            CDR = sum(CDR, na.rm = TRUE)) %>%
+  left_join(afghanShape %>%
+              data.frame() %>%
+              select(PROVID, PROV_34_NA) %>%
+              unique()) %>%
+  select(-PROVID) %>%
+  filter(!is.na(IOM) & !is.na(CDR))
+
+cor(outIncoming$IOM, outIncoming$CDR, method = "spearman") # 0.5578304
+cor(outOutgoing$IOM, outOutgoing$CDR, method = "spearman") # 0.4851031

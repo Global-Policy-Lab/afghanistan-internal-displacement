@@ -6,6 +6,12 @@ library(tidyverse)
 load("/Users/xtai/Desktop/development/displacementProj/code/data/ged191")
 
 allViolentEvents <- ged191[ged191$country == "Afghanistan", ]
+
+# check counts
+year2013to17 <- allViolentEvents %>% filter(year >= 2013 & year <= 2017) #11213
+sum(year2013to17$where_prec >= 1 & year2013to17$where_prec <= 3 & year2013to17$date_prec == 1) # 5984
+## end check
+
 allViolentEvents <- allViolentEvents %>% filter(where_prec >= 1 & where_prec <= 3 & date_prec == 1) # 7/29 update: now 17424 --- cannot use %in% --- removes sf structure that we need for eventCoords
 
 allViolentEvents <- allViolentEvents %>% filter(year >= 2012 & year <= 2018) # update 7/30: since we are using longer window, need more events 
@@ -102,5 +108,8 @@ ggplot() +
   geom_sf(data = eventsCoords[eventsCoords$distid == 101, ], size = 3.5, fill = "red", col = "red")
 dev.off()
 
-
-
+### number of events in districts with no cell tower
+distsWithTower <- unique(sites$distid) # 267 of them
+sum(eventsCoords$distid %in% distsWithTower) # 5021
+# 5021/nrow(eventsCoords)
+# [1] 0.8390709
