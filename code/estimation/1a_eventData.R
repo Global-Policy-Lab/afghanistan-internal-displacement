@@ -113,3 +113,61 @@ distsWithTower <- unique(sites$distid) # 267 of them
 sum(eventsCoords$distid %in% distsWithTower) # 5021
 # 5021/nrow(eventsCoords)
 # [1] 0.8390709
+
+
+############# 7/25: reviewer comments
+# reviewer wants panel with 3 figures 
+
+pdf("/Users/xtai/Desktop/development/displacementProj/NatureHB/review/7-25figure1_skinny.pdf", width = 5, height = 5)
+# pdf("/Users/xtai/Desktop/development/displacementProj/NatureHB/review/7-25figure1.pdf", width = 6, height = 5)
+ggplot() + 
+  # theme_void() +
+  geom_sf(data = afghanShape[-352, ], aes(fill = TOTAL)) + # 1/28: remove Kabul
+  # scale_fill_gradient(trans = "log") +
+  viridis::scale_fill_viridis(trans = "log", 
+                              alpha = .4, 
+                              name = "Population",
+                              breaks = c(3000, 10000, 30000, 100000, 250000, 500000),
+                              labels=function(x) format(x, big.mark = ",", scientific = FALSE)) +
+  theme(legend.position = c(1, 0.35),
+        legend.justification = c("right", "top"),
+        legend.title = element_text(size=9))
+        # legend.text = element_text(size=14),
+        # axis.text=element_text(size=14),
+        # axis.title=element_text(size=14))
+
+ggplot() + 
+  # theme_void() +
+  geom_sf(data = afghanShape) + # 1/28: remove Kabul
+  # viridis::scale_fill_viridis(alpha = .4, name = "Population") +
+  # labs(title = paste0("Afghanistan Districts: ", nrow(eventsCoords), " violent events in red, \n1439 cell tower groups in black")) + 
+  geom_sf(data = sites, size = .6, aes(color = "black")) +
+  # geom_point(1) +
+  scale_color_manual(values = "black",
+                     name = NULL,
+                     labels = "Cell towers") + 
+  theme(legend.position = c(0, 1.02),
+        legend.justification = c("left", "top"),
+        legend.background=element_blank(),
+        legend.key = element_blank()) +
+  guides(colour = guide_legend(override.aes = list(size=1)))
+
+ggplot() + 
+  # theme_void() +
+  geom_sf(data = afghanShape) + # 1/28: remove Kabul
+  # viridis::scale_fill_viridis(alpha = .4, name = "Population") +
+  # labs(title = paste0("Afghanistan Districts: ", nrow(eventsCoords), " violent events in red, \n1439 cell tower groups in black")) + 
+  geom_sf(data = eventsCoords, size = .3, shape = 21, fill = "darkred", alpha = .7,
+          aes(color = "darkred")) +
+  scale_color_manual(values = "darkred",
+                     name = NULL,
+                     labels = "Violence") + 
+  theme(legend.position = c(0, 1.02),
+        legend.justification = c("left", "top"),
+        legend.background=element_blank(),
+        legend.key = element_blank()) +
+  guides(colour = guide_legend(override.aes = list(size=1)))
+
+dev.off()
+
+# Kabul excluded: population 3678034

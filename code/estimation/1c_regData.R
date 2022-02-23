@@ -10,7 +10,7 @@ districtDayTemplate <- districtDay %>%
   rename(district_id = district)
 
 ##### events
-load("/data/tmp/xtai/allMyEvents_7-29.Rdata")
+load("/data/afg_anon/displacement_analysis/allMyEvents_7-29.Rdata")
 # from events data set, make
 # district, day, eventYN, numEvents
 
@@ -26,7 +26,8 @@ ddevents <- makeDataset(summarizeEvents, districtDayTemplate, "", 180)
 ### 8/11 update: only use tau = -30 to 180
 # m is in the past*****
 ddevents <- ddevents[, 1:213]
-saveRDS(ddevents, file = "/data/tmp/xtai/districtDay_eventsOnly_8-11.rds")
+# saveRDS(ddevents, file = "/data/tmp/xtai/districtDay_eventsOnly_8-11.rds")
+saveRDS(ddevents, file = "/data/afg_anon/displacement_analysis/districtDay_eventsOnly_8-11.rds")
 
 
 ############################ HETEROGENEITY ###############################
@@ -41,9 +42,10 @@ summarizeEventsL11 <- summarizeEvents[which(summarizeEvents$numCasualties < 11),
 districtDayPart1 <- makeDataset(summarizeEventsGE11, districtDayTemplate, prefix = "", 180)
 districtDayPart2 <- makeDataset(summarizeEventsL11, districtDayTemplate, prefix = "_S", 180)
 ddevents <- left_join(districtDayPart1,
-                         districtDayPart2)
+                      districtDayPart2)
 ddevents <- ddevents[, c(1:213, 364:574)]
-saveRDS(ddevents, file = "/data/tmp/xtai/districtDay_eventsOnly_8-11_11casualties.rds")
+# saveRDS(ddevents, file = "/data/tmp/xtai/districtDay_eventsOnly_8-11_11casualties.rds")
+saveRDS(ddevents, file = "/data/afg_anon/displacement_analysis/districtDay_eventsOnly_8-11_11casualties.rds")
 
 ####### peacetime
 # time since last event
@@ -91,9 +93,10 @@ summarizeEventsL60 <- tmpEvents[which(tmpEvents$daysFromLastEvent < 60), ]
 districtDayPart1 <- makeDataset(summarizeEventsGE60, districtDayTemplate, prefix = "", 180)
 districtDayPart2 <- makeDataset(summarizeEventsL60, districtDayTemplate, prefix = "_S", 180)
 ddevents <- left_join(districtDayPart1,
-                         districtDayPart2)
+                      districtDayPart2)
 ddevents <- ddevents[, c(1:213, 364:574)]
-saveRDS(ddevents, file = "/data/tmp/xtai/districtDay_eventsOnly_8-11_60peace.rds")
+# saveRDS(ddevents, file = "/data/tmp/xtai/districtDay_eventsOnly_8-11_60peace.rds")
+saveRDS(ddevents, file = "/data/afg_anon/displacement_analysis/districtDay_eventsOnly_8-11_60peace.rds")
 
 # note that for casualties and peace, these are done on a violent day level. e.g., if there is a day where there are two events, but for the 60 preceding days there are no events, this day is considered a day with 60 days of peacetime
 
@@ -128,7 +131,42 @@ ddeventsOnly <- left_join(districtDayPart1,
 ddeventsOnly <- left_join(ddeventsOnly,
                           districtDayPart3)
 ddevents <- ddeventsOnly[, c(1:213, 364:574, 725:935)]
-saveRDS(ddevents, file = "/data/tmp/xtai/districtDay_eventsOnly_8-11_talebanIS.rds")
+# saveRDS(ddevents, file = "/data/tmp/xtai/districtDay_eventsOnly_8-11_talebanIS.rds")
+saveRDS(ddevents, file = "/data/afg_anon/displacement_analysis/districtDay_eventsOnly_8-11_talebanIS.rds")
+
+
+##### WHERE_PREC
+
+summarizeEventsV1 <- myEvents %>% 
+  filter(where_prec == 1) %>%
+  group_by(distid, date_start) %>%
+  summarize(numEvents = dplyr::n()) %>%
+  mutate(date_start = as.Date(date_start))
+# 908 IS
+
+summarizeEventsV2 <- myEvents %>% 
+  filter(where_prec == 2) %>%
+  group_by(distid, date_start) %>%
+  summarize(numEvents = dplyr::n()) %>%
+  mutate(date_start = as.Date(date_start))
+# 7537 
+
+summarizeEventsV3 <- myEvents %>% 
+  filter(where_prec == 3) %>%
+  group_by(distid, date_start) %>%
+  summarize(numEvents = dplyr::n()) %>%
+  mutate(date_start = as.Date(date_start))
+# 85 remaining
+
+districtDayPart1 <- makeDataset(summarizeEventsV1, districtDayTemplate, prefix = "", 180)
+districtDayPart2 <- makeDataset(summarizeEventsV2, districtDayTemplate, prefix = "_B", 180) # where_prec2
+districtDayPart3 <- makeDataset(summarizeEventsV3, districtDayTemplate, prefix = "_C", 180) # where_prec3
+ddeventsOnly <- left_join(districtDayPart1,
+                          districtDayPart2)
+ddeventsOnly <- left_join(ddeventsOnly,
+                          districtDayPart3)
+ddevents <- ddeventsOnly[, c(1:213, 364:574, 725:935)]
+saveRDS(ddevents, file = "/data/afg_anon/displacement_analysis/districtDay_eventsOnly_8-11_wherePrec.rds")
 
 
 ############################# OUTCOME DATA SET ###############################
@@ -175,7 +213,7 @@ districtDaySet5 <- districtDaySet5 %>%
   dplyr::mutate(date = as.Date("2013-03-31") + lubridate::days(day_series)) %>%
   rename(district_id = district)
 
-districtDaySet6 <- read.csv("/data/tmp/smehra/aggregated_data/afgh-displacement/district_day_metrics/district_day_metrics_k71_to_k80.csv") 
+districtDaySet6 <- read.csv("/data/afg_anon/displacement_metrics/percentage_migrated_per_district_day/district_day_metrics_k71_to_k80.csv") 
 
 districtDaySet6 <- districtDaySet6 %>%
   dplyr::select(-starts_with("non_migrated")) %>%
@@ -183,7 +221,7 @@ districtDaySet6 <- districtDaySet6 %>%
   dplyr::mutate(date = as.Date("2013-03-31") + lubridate::days(day_series)) %>%
   rename(district_id = district)
 
-districtDaySet7 <- read.csv("/data/tmp/smehra/aggregated_data/afgh-displacement/district_day_metrics/district_day_metrics_k81_to_k90.csv") 
+districtDaySet7 <- read.csv("/data/afg_anon/displacement_metrics/percentage_migrated_per_district_day/district_day_metrics_k81_to_k90.csv") 
 
 districtDaySet7 <- districtDaySet7 %>%
   dplyr::select(-starts_with("non_migrated")) %>%
@@ -191,7 +229,7 @@ districtDaySet7 <- districtDaySet7 %>%
   dplyr::mutate(date = as.Date("2013-03-31") + lubridate::days(day_series)) %>%
   rename(district_id = district)
 
-districtDaySet8 <- read.csv("/data/tmp/smehra/aggregated_data/afgh-displacement/district_day_metrics/district_day_metrics_k91_to_k100.csv") 
+districtDaySet8 <- read.csv("/data/afg_anon/displacement_metrics/percentage_migrated_per_district_day/district_day_metrics_k91_to_k100.csv") 
 
 districtDaySet8 <- districtDaySet8 %>%
   dplyr::select(-starts_with("non_migrated")) %>%
@@ -199,7 +237,7 @@ districtDaySet8 <- districtDaySet8 %>%
   dplyr::mutate(date = as.Date("2013-03-31") + lubridate::days(day_series)) %>%
   rename(district_id = district)
 
-districtDaySet9 <- read.csv("/data/tmp/smehra/aggregated_data/afgh-displacement/district_day_metrics/district_day_metrics_k101_to_k110.csv") 
+districtDaySet9 <- read.csv("/data/afg_anon/displacement_metrics/percentage_migrated_per_district_day/district_day_metrics_k101_to_k110.csv") 
 
 districtDaySet9 <- districtDaySet9 %>%
   dplyr::select(-starts_with("non_migrated")) %>%
@@ -207,7 +245,7 @@ districtDaySet9 <- districtDaySet9 %>%
   dplyr::mutate(date = as.Date("2013-03-31") + lubridate::days(day_series)) %>%
   rename(district_id = district)
 
-districtDaySet10 <- read.csv("/data/tmp/smehra/aggregated_data/afgh-displacement/district_day_metrics/district_day_metrics_k111_to_k120.csv") 
+districtDaySet10 <- read.csv("/data/afg_anon/displacement_metrics/percentage_migrated_per_district_day/district_day_metrics_k111_to_k120.csv") 
 
 districtDaySet10 <- districtDaySet10 %>%
   dplyr::select(-starts_with("non_migrated")) %>%
@@ -290,7 +328,7 @@ districtDay <- districtDay %>%
   select(-starts_with("migrated_as_per_day"))
 
 
-saveRDS(districtDay, file = "/data/tmp/xtai/districtDay_8-12_outcomeOnly.rds")
+saveRDS(districtDay, file = "/data/afg_anon/displacement_analysis/districtDay_8-12_outcomeOnly.rds")
 
 ############################### WPG outcomes #################################
 # /data/afg_anon/displacement_metrics/visits_per_district_day/k_30.csv
@@ -323,7 +361,8 @@ saveRDS(districtDay, file = "/data/tmp/xtai/districtDay_8-12_outcomeOnly.rds")
 rm(list=ls());gc()
 library(dplyr)
 
-districtInfo <- readRDS("/data/tmp/xtai/data/district_ids_with_info.rds")
+# districtInfo <- readRDS("/data/tmp/xtai/data/district_ids_with_info.rds")
+districtInfo <- readRDS("/data/afg_anon/displacement_analysis/district_ids_with_info.rds")
 
 makeMetricsK <- function(k) {
   k30data <- read.csv(paste0("/data/afg_anon/displacement_metrics/visits_per_district_day/k_", k, ".csv"))
@@ -339,10 +378,10 @@ makeMetricsK <- function(k) {
               by = c("destination_district" = "distid")) %>%
     rename(destProvid = provid,
            destProvCapital = provincialCapital) %>%
-  mutate(toSameProvincialCap = ifelse(destProvCapital == 1 & originProvid == destProvid, 1, 0)
-  )
+    mutate(toSameProvincialCap = ifelse(destProvCapital == 1 & originProvid == destProvid, 1, 0)
+    )
   
-
+  
   outData <- k30data %>%
     group_by(origin_district, impact_day) %>% # now aggregate
     summarize(
@@ -359,7 +398,9 @@ makeMetricsK <- function(k) {
   outData <- outData %>%
     mutate(date = as.Date("2013-04-01") + lubridate::days(impact_day - 1))
   
-  districtDay <- readRDS("/data/tmp/xtai/districtDay_8-12_outcomeOnly.rds")
+  # districtDay <- readRDS("/data/tmp/xtai/districtDay_8-12_outcomeOnly.rds")
+  districtDay <- readRDS("/data/afg_anon/displacement_analysis/districtDay_8-12_outcomeOnly.rds")
+  
   forNumMoved <- districtDay[, c("district_id", "date", paste0("lagTotalImpactedk", sprintf("%03d", k)), paste0("lagPercentMigratedk", sprintf("%03d", k)))]
   names(forNumMoved)[3] <- "numImpacted" # lagged
   names(forNumMoved)[4] <- "percentMoved"
@@ -377,11 +418,11 @@ makeMetricsK <- function(k) {
   
   districtDay <- districtDay %>%
     mutate(
-           toSameProvincialCap = dplyr::lag(toSameProvincialCap, n = k, order_by = date),
-           toTop5exclhome = dplyr::lag(toTop5exclhome, n = k, order_by = date),
-           toRemainingCap = dplyr::lag(toRemainingCap, n = k, order_by = date),
-           toOtherProvNonCap = dplyr::lag(toOtherProvNonCap, n = k, order_by = date),
-           toSameProvNonCap = dplyr::lag(toSameProvNonCap, n = k, order_by = date)
+      toSameProvincialCap = dplyr::lag(toSameProvincialCap, n = k, order_by = date),
+      toTop5exclhome = dplyr::lag(toTop5exclhome, n = k, order_by = date),
+      toRemainingCap = dplyr::lag(toRemainingCap, n = k, order_by = date),
+      toOtherProvNonCap = dplyr::lag(toOtherProvNonCap, n = k, order_by = date),
+      toSameProvNonCap = dplyr::lag(toSameProvNonCap, n = k, order_by = date)
     )
   
   districtDay <- districtDay %>% 
@@ -391,15 +432,16 @@ makeMetricsK <- function(k) {
                 select(district_id, date, numMoved, numImpacted),
               by = c("district_id", "date")) %>%
     dplyr::mutate(
-                  sameProvincialCapComp = toSameProvincialCap/numMoved,
-                  top5exclhomeComp = toTop5exclhome/numMoved,
-                  remainingCapComp = toRemainingCap/numMoved,
-                  otherProvNonCapComp = toOtherProvNonCap/numMoved,
-                  sameProvNonCapComp = toSameProvNonCap/numMoved)
+      sameProvincialCapComp = toSameProvincialCap/numMoved,
+      top5exclhomeComp = toTop5exclhome/numMoved,
+      remainingCapComp = toRemainingCap/numMoved,
+      otherProvNonCapComp = toOtherProvNonCap/numMoved,
+      sameProvNonCapComp = toSameProvNonCap/numMoved)
   
   # convert to integer --- not sure why it's numeric now
   districtDay$district_id <- type.convert(districtDay$district_id)
-  saveRDS(districtDay, file = paste0("/data/tmp/xtai/districtDayWPG/districtDayWPG_9-22_outcomeOnly_", k, "_comp12-11.rds")) # new location
+  
+  saveRDS(districtDay, file = paste0("/data/afg_anon/displacement_analysis/districtDayWPG/districtDayWPG_9-22_outcomeOnly_", k, "_comp12-11.rds")) # new location
   
 }
 
@@ -407,5 +449,3 @@ for (k in c(7, 30, 90)) {
   cat(k, ", ")
   makeMetricsK(k)
 }
-
-

@@ -1,4 +1,5 @@
 # This work is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.
+# for Figure 6
 rm(list=ls()); gc()
 library(ggplot2); library(dplyr)
 # load("/Users/xtai/Desktop/development/displacementProj/code/data/afghanShapeAllInfo.Rdata") # use TOTAL column --- this is CSO's total population estimate
@@ -12,7 +13,7 @@ afghanShape <- afghanShape %>%
               select(distid, TOTAL),
             by = c("DISTID" = "distid"))
 
-############# CDR processing 
+############# CDR processing --- run this on server
 districtDay <- read.csv("/data/afg_anon/displacement_metrics/percentage_migrated_per_district_day/district_day_metrics_k111_to_k120.csv")
 
 districtDay <- districtDay %>%
@@ -73,6 +74,9 @@ CDRversionOutgoing$propByDist <- CDRversionOutgoing$scaledMigrated/sum(CDRversio
 CDRversionOutgoing$propByDistExKabul <- NA
 CDRversionOutgoing$propByDistExKabul[-1] <- CDRversionOutgoing$scaledMigrated[-1]/sum(CDRversionOutgoing$scaledMigrated[-1]) # -1 to exclude Kabul
 
+# 2/23/22: N for figure
+sum(CDRversionOutgoing$scaledMigrated)
+# [1] 5632789
 ######## IOM
 IOM <- openxlsx::read.xlsx("/Users/xtai/Desktop/development/displacementProj/code/weeklyPrep/10-13/dtm-afghanistan-settlements-round-9-baseline-assessment.xlsx")
 # use this: FledIDPs2016
@@ -102,6 +106,10 @@ IOMversionOutgoing$propByDist <- IOMversionOutgoing$sumYearIOM/sum(IOMversionOut
 IOMversionOutgoing$propByDistExKabul <- NA
 IOMversionOutgoing$propByDistExKabul[-1] <- IOMversionOutgoing$sumYearIOM[-1]/sum(IOMversionOutgoing$sumYearIOM[-1]) # -1 to exclude Kabul
 
+# 2/23/22: N for figure
+sum(IOMversionOutgoing$sumYearIOM)
+# [1] 1209125
+
 ############# now join and aggregate by province
 outOutgoingExKabul <- CDRversionOutgoing %>%
   select(district_id, propByDistExKabul, PROVID) %>%
@@ -120,27 +128,6 @@ outOutgoingExKabul <- CDRversionOutgoing %>%
   select(-PROVID) %>%
   filter(!is.na(IOM) & !is.na(CDR))
 
-# png("/Users/xtai/Desktop/development/displacementProj/PNASpaper/fig6a.png", width = 10, height = 4.5, res = 300, units = "in")
-# pdf("/Users/xtai/Desktop/development/displacementProj/PNASpaper/fig6a.pdf", width = 10, height = 4.5)
-# pdf("/Users/xtai/Desktop/development/displacementProj/PNASpaper/fig6a_4-29.pdf", width = 10, height = 4.5) # this version: includes Kabul
-pdf("/Users/xtai/Desktop/development/displacementProj/PNASpaper/fig6a_5-3.pdf", width = 10, height = 4.5) # this version: excludes Kabul
-outOutgoingExKabul %>%
-  # outOutgoing %>%
-  tidyr::pivot_longer(!PROV_34_NA, names_to = "Source", values_to = "proportion") %>%
-  ggplot(aes(x = PROV_34_NA, y = proportion, fill = Source)) +
-  geom_bar(position="dodge",stat="identity") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  labs(#title = "Proportion of outgoing migrants from each province\nCDR: outgoing migrants are the sum of users seen in a different district; IOM: outgoing migrants are fled IDPs\n(Kabul district is excluded)",
-    x = NULL,
-    y = "Province Share") +
-  theme(legend.position = c(1, 1.02),
-        legend.justification = c("right", "top"),
-        legend.title = element_blank(),
-        legend.text = element_text(size=14),
-        axis.text=element_text(size=14),
-        axis.title=element_text(size=14)) +
-  scale_fill_discrete(labels = c("CDR migration", "IOM displacement")) # 4/29: new
-dev.off()
 
 ############################## 2. INCOMING (DESTINATION) ############################## 
 # rm(list=ls()); gc()
@@ -171,8 +158,12 @@ CDRversionIncoming$propByDist <- CDRversionIncoming$sumYearCDR/sum(CDRversionInc
 CDRversionIncoming$propByDistExKabul <- NA
 CDRversionIncoming$propByDistExKabul[-1] <- CDRversionIncoming$sumYearCDR[-1]/sum(CDRversionIncoming$sumYearCDR[-1]) # -1 to exclude Kabul
 
+# 2/23/22: N for figure
+sum(CDRversionIncoming$sumYearCDR)
+# [1] 5654994
+
 ######## IOM
-# IOM <- openxlsx::read.xlsx("/Users/xtai/Desktop/development/displacementProj/code/weeklyPrep/10-13/dtm-afghanistan-settlements-round-9-baseline-assessment.xlsx")
+IOM <- openxlsx::read.xlsx("/Users/xtai/Desktop/development/displacementProj/code/weeklyPrep/10-13/dtm-afghanistan-settlements-round-9-baseline-assessment.xlsx")
 
 # use Latitude and Longitude instead of ADM1 and 2 codes -- these look like they don't have an easy way to match 
 ### for incoming: use both arrival and returned IDPs
@@ -201,6 +192,10 @@ IOMversionIncoming$propByDist <- IOMversionIncoming$sumYearIOM/sum(IOMversionInc
 IOMversionIncoming$propByDistExKabul <- NA
 IOMversionIncoming$propByDistExKabul[-1] <- IOMversionIncoming$sumYearIOM[-1]/sum(IOMversionIncoming$sumYearIOM[-1]) # -1 to exclude Kabul
 
+# 2/23/22: N for figure
+sum(IOMversionIncoming$sumYearIOM)
+# [1] 2143281
+
 ############# now join and aggregate by province
 outIncomingExKabul <- CDRversionIncoming %>%
   select(destination_district, propByDistExKabul, PROVID) %>%
@@ -219,25 +214,46 @@ outIncomingExKabul <- CDRversionIncoming %>%
   select(-PROVID) %>%
   filter(!is.na(IOM) & !is.na(CDR))
 
-# png("/Users/xtai/Desktop/development/displacementProj/PNASpaper/fig6b.png", width = 10, height = 4.5, res = 300, units = "in")
-# pdf("/Users/xtai/Desktop/development/displacementProj/PNASpaper/fig6b.pdf", width = 10, height = 4.5)
-# pdf("/Users/xtai/Desktop/development/displacementProj/PNASpaper/fig6b_4-29.pdf", width = 10, height = 4.5) # this version: includes Kabul
-pdf("/Users/xtai/Desktop/development/displacementProj/PNASpaper/fig6b_5-3.pdf", width = 10, height = 4.5) # this version: excludes Kabul
-outIncomingExKabul %>%
+############ FIGURE 6 ############
+pdf("/Users/xtai/Desktop/development/displacementProj/NatureHB/finalGuidelines/finalFigures/fig6.pdf", width = 10, height = 9) 
+tmp1 <- outOutgoingExKabul %>%
+  # outOutgoing %>%
+  tidyr::pivot_longer(!PROV_34_NA, names_to = "Source", values_to = "proportion") %>%
+  ggplot(aes(x = PROV_34_NA, y = proportion, fill = Source)) +
+  geom_bar(position="dodge",stat="identity") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(#title = "Proportion of outgoing migrants from each province\nCDR: outgoing migrants are the sum of users seen in a different district; IOM: outgoing migrants are fled IDPs\n(Kabul district is excluded)",
+    x = NULL,
+    y = "Province Share",
+    tag = "a") +
+  theme(legend.position = c(1, 1.02),
+        legend.justification = c("right", "top"),
+        legend.title = element_blank(),
+        legend.text = element_text(size=14),
+        axis.text=element_text(size=14),
+        axis.title=element_text(size=14),
+        plot.tag = element_text(face = "bold")) +
+  scale_fill_discrete(labels = c("CDR migration", "IOM displacement")) # 4/29: new
+
+tmp2 <- outIncomingExKabul %>%
   tidyr::pivot_longer(!PROV_34_NA, names_to = "Source", values_to = "proportion") %>%
   ggplot(aes(x = PROV_34_NA, y = proportion, fill = Source)) +
   geom_bar(position="dodge",stat="identity") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   labs(
     x = NULL,
-    y = "Province Share") +
+    y = "Province Share",
+    tag = "b") +
   theme(legend.position = c(1, 1.02),
         legend.justification = c("right", "top"),
         legend.title = element_blank(),
         legend.text = element_text(size=14),
         axis.text=element_text(size=14),
-        axis.title=element_text(size=14)) +
+        axis.title=element_text(size=14),
+        plot.tag = element_text(face = "bold")) +
   scale_fill_discrete(labels = c("CDR migration", "IOM displacement")) # 4/29: new
+
+gridExtra::grid.arrange(tmp1, tmp2, nrow = 2)
 dev.off()
 
 
@@ -278,3 +294,41 @@ outOutgoing <- CDRversionOutgoing %>%
 
 cor(outIncoming$IOM, outIncoming$CDR, method = "spearman") # 0.5578304
 cor(outOutgoing$IOM, outOutgoing$CDR, method = "spearman") # 0.4851031
+
+### CIs and p-value
+spearman.test <- function(x, y, conf.level = 0.95) {
+  RIN <- function(x){qnorm((rank(x) - 0.5)/(length(rank(x))))}
+  x_rin <- RIN(x)
+  y_rin <- RIN(y)
+  list(cor.test(x,y, method='spearman'),
+       'RIN corrected CI'= cor.test(x_rin,y_rin)$conf.int[1:2]
+  )
+} 
+spearman.test(outIncoming$IOM, outIncoming$CDR)
+# Spearman's rank correlation rho
+# 
+# data:  x and y
+# S = 2894, p-value = 0.0007445
+# alternative hypothesis: true rho is not equal to 0
+# sample estimates:
+#       rho 
+# 0.5578304 
+# 
+# 
+# $`RIN corrected CI`
+# [1] 0.3056769 0.7697890
+spearman.test(outOutgoing$IOM, outOutgoing$CDR)
+# Spearman's rank correlation rho
+# 
+# data:  x and y
+# S = 3370, p-value = 0.004026
+# alternative hypothesis: true rho is not equal to 0
+# sample estimates:
+#       rho 
+# 0.4851031 
+# 
+# 
+# $`RIN corrected CI`
+# [1] 0.1997132 0.7194354
+
+# https://www.r-bloggers.com/2020/05/cis-for-spearmans-rho-and-kendalls-tau/

@@ -1,14 +1,22 @@
 #!/usr/bin/Rscript
 # This work is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.
-
+# 4_singleEvent.R uses this script
 ### this script: single violent days --- uses lfe package
 args = commandArgs(trailingOnly = TRUE)
+ddOutcomes <- readRDS(paste0("/data/afg_anon/displacement_analysis/districtDay_8-12_outcomeOnly.rds"))
+
+# if (identical(ddEvents[, c("district_id", "date")], ddOutcomes[, c("district_id", "date")]) == FALSE) stop("Events and outcome data in different order")
 
 suppressMessages(library(magrittr))
 suppressMessages(library(dplyr))
 
-####################### NOTE: run these beforehand ####################### 
-# load("/data/tmp/xtai/allMyEvents_7-29.Rdata")
+# directory to use: /data/afg_anon/displacement_analysis/10-7singleViolence/
+# check if it works using an event that throws an error
+
+############################# run this section beforehand ###############################
+# make a data set to store results: 
+# each row should be a violenceDistrict and violenceDate 
+# load("/data/afg_anon/displacement_analysis/allMyEvents_7-29.Rdata")
 # 
 # summarizeEvents <- myEvents %>%
 #   group_by(distid, date_start) %>%
@@ -18,20 +26,43 @@ suppressMessages(library(dplyr))
 # summarizeEvents$date_start <- as.Date(summarizeEvents$date_start) # 5573 obs
 # 
 # rViolentDays <- summarizeEvents %>%
-#   filter(date_start > as.Date("2013-09-28") & date_start <= as.Date("2017-03-01"))
-# saveRDS(rViolentDays, file = "/data/tmp/xtai/10-7singleViolence/rViolentDays.rds")
-
-###### make a data set to store results: 
-# each row should be a violenceDistrict and violenceDate  
-
-# coefListK <- readRDS(paste0("/data/tmp/xtai/7-30panelPlots/allK/betaCoefList.rds")) # extract column names from here 
-# forColNames <- coefListK[[1]][which(substr(coefListK[[1]]$term, 1, 1) == "T"), ]$term
-
+#   filter(date_start > as.Date("2013-09-28") & date_start <= as.Date("2017-03-01")) %>%
+#   data.frame()
+# # 3724 events
+# 
+# ddEvents <- readRDS("/data/afg_anon/displacement_analysis/districtDay_eventsOnly_8-11.rds")
+# tmpNames <- paste0(names(ddEvents[3:213]), "1")
 # outDTF <- data.frame(distid = rViolentDays$distid, date_start = rViolentDays$date_start, stringsAsFactors = FALSE)
-# outDTF[, forColNames] <- NA 
-# saveRDS(outDTF, file = "/data/tmp/xtai/10-7singleViolence/checks/lfeVersion/outDTF.rds")
+# outDTF[, tmpNames] <- NA # double-check the order before putting it in # see 10-20singleEvents.R
+# 
+# saveRDS(outDTF, file = "/data/afg_anon/displacement_analysis/10-7singleViolence/outDTF.rds")
+############################# end #############################
 
-######################## start here: helper functions
+######################## start here
+load("/data/afg_anon/displacement_analysis/allMyEvents_7-29.Rdata")
+
+summarizeEvents <- myEvents %>%
+  group_by(distid, date_start) %>%
+  summarize(numEvents = dplyr::n(),
+            numCasualties = sum(best))
+
+summarizeEvents$date_start <- as.Date(summarizeEvents$date_start) # 5573 obs
+
+rViolentDays <- summarizeEvents %>%
+  filter(date_start > as.Date("2013-09-28") & date_start <= as.Date("2017-03-01")) %>%
+  data.frame()
+
+outDTF <- readRDS("/data/afg_anon/displacement_analysis/10-7singleViolence/outDTF.rds")
+
+# make Tm180 to T030 (211 cols)
+districtDayTemplate <- ddOutcomes %>% 
+  select(district_id, date)
+
+ddEventsZero <- data.frame(matrix(0, nrow = nrow(ddOutcomes), ncol = length(-180:30)))
+names(ddEventsZero) <- c(paste0("Tm", sprintf("%03d", 180:1)), paste0("T", sprintf("%03d", 0:30)))
+
+ddEventsZero <- cbind(districtDayTemplate, ddEventsZero)
+
 makeDataset2 <- function(violenceDate, violenceDistrict, districtDay) {
   for (l in -180:30) {
     tmpDate <- violenceDate - lubridate::days(l)
@@ -51,7 +82,7 @@ myFun <- function(k) {
     mutate_all(~as.factor(.)) %>%
     bind_cols(percentage_migrated = tmp[, "percentage_migrated"])
   
-  ###### use high dimensional FE
+  ###### try high dimensional FE
   xnam <- names(forPercent)[3:213] # to get the Ts
   fmla <- as.formula(paste("log(percentage_migrated/(1 - percentage_migrated)) ~ ", paste(xnam, collapse= "+"), " | district_id + date") )
   
@@ -61,20 +92,6 @@ myFun <- function(k) {
     return(tmplfe)
   }
 }
-
-########################################################################
-rViolentDays <- readRDS("/data/tmp/xtai/10-7singleViolence/rViolentDays.rds")
-outDTF <- readRDS("/data/tmp/xtai/10-7singleViolence/checks/lfeVersion/outDTF.rds")
-
-ddOutcomes <- readRDS(paste0("/data/tmp/xtai/districtDay_8-12_outcomeOnly.rds"))
-# make Tm180 to T030 (211 cols)
-districtDayTemplate <- ddOutcomes %>% 
-  select(district_id, date)
-
-ddEventsZero <- data.frame(matrix(0, nrow = nrow(ddOutcomes), ncol = length(-180:30)))
-names(ddEventsZero) <- c(paste0("Tm", sprintf("%03d", 180:1)), paste0("T", sprintf("%03d", 0:30)))
-
-ddEventsZero <- cbind(districtDayTemplate, ddEventsZero)
 
 ddOutcomes$percentage_migrated <- ddOutcomes[, paste0("lagPercentMigratedk", sprintf("%03d", 30))]
 keepThese <- which(!is.na(ddOutcomes$percentage_migrated) & ddOutcomes$percentage_migrated != 0 & ddOutcomes$percentage_migrated != 1)
@@ -92,7 +109,7 @@ for (i in as.numeric(args[1]):as.numeric(args[2])) {
   }
   
 }
-saveRDS(outDTF, file = paste0("/data/tmp/xtai/10-7singleViolence/checks/lfeVersion/outDTF_", args[1], "_", args[2], "lfe.rds"))
+saveRDS(outDTF, file = paste0("/data/afg_anon/displacement_analysis/10-7singleViolence/outDTF_", args[1], "_", args[2], "lfe.rds"))
 
 # for (i in seq(1, 3501, 100)) {
 #   cat(paste0("nohup ./myCode/runPanelReg_singlelfe.R ", i, " ", i+99, " &\n"))
@@ -134,4 +151,5 @@ saveRDS(outDTF, file = paste0("/data/tmp/xtai/10-7singleViolence/checks/lfeVersi
 # nohup ./myCode/runPanelReg_singlelfe.R 3301 3400 &
 # nohup ./myCode/runPanelReg_singlelfe.R 3401 3500 &
 # nohup ./myCode/runPanelReg_singlelfe.R 3501 3600 &
-# nohup ./myCode/runPanelReg_singlelfe.R 3601 3724 &
+# nohup ./myCode/runPanelReg_singlelfe.R 3601 3700 &
+# nohup ./myCode/runPanelReg_singlelfe.R 3701 3724 &

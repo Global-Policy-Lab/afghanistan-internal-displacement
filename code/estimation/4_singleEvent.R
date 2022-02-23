@@ -1,23 +1,30 @@
 # This work is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.
+# first use runPanelReg_singlelfe.R
 rm(list=ls()); gc()
 library(ggplot2); library(dplyr)
-
+### non-robust version
 #### put rds together
-outDTF <- readRDS("/data/tmp/xtai/10-7singleViolence/checks/lfeVersion/outDTF.rds")
-for (i in seq(from = 1, to = 3501, by = 100)) {
-  tmp <- readRDS(paste0("/data/tmp/xtai/10-7singleViolence/checks/lfeVersion/outDTF_", i, "_", i + 99, "lfe.rds"))
+outDTF <- readRDS("/data/afg_anon/displacement_analysis/10-7singleViolence/outDTF.rds")
+for (i in seq(from = 1, to = 3601, by = 100)) {
+  tmp <- readRDS(paste0("/data/afg_anon/displacement_analysis/10-7singleViolence/outDTF_", i, "_", i + 99, "lfe.rds"))
   outDTF[i:(i+99), 3:ncol(outDTF)] <- tmp[i:(i+99), 3:ncol(tmp)] 
 }
-tmp <- readRDS(paste0("/data/tmp/xtai/10-7singleViolence/checks/lfeVersion/outDTF_3601_3724lfe.rds"))
-outDTF[3601:nrow(outDTF), 3:ncol(outDTF)] <- tmp[3601:nrow(outDTF), 3:ncol(tmp)]
+tmp <- readRDS(paste0("/data/afg_anon/displacement_analysis/10-7singleViolence/outDTF_3701_3724lfe.rds"))
+outDTF[3701:nrow(outDTF), 3:ncol(outDTF)] <- tmp[3701:nrow(outDTF), 3:ncol(tmp)] 
 
-saveRDS(outDTF, file = "/data/tmp/xtai/10-7singleViolence/checks/lfeVersion/outDTF_lfe.rds")
-
+saveRDS(outDTF, file = "/data/afg_anon/displacement_analysis/10-7singleViolence/outDTF_lfe.rds")
+# sum(!is.na(outDTF$T0001)) # 2359 ---- correct
+# identical(as.numeric(!is.na(outDTF$T0001)), keep) # true
+# numNA <- apply(outDTF[, 3:ncol(outDTF)], 1, function(x) sum(is.na(x)))
+# table(numNA)
+# numNA
+# 0  211 
+# 2359 1365 
 ##########################################################################################
 
 rm(list=ls()); gc()
 library(dplyr); library(ggplot2)
-outDTF <- readRDS("/data/tmp/xtai/10-7singleViolence/checks/lfeVersion/outDTF_lfe.rds") # this one
+outDTF <- readRDS("/data/afg_anon/displacement_analysis/10-7singleViolence/outDTF_lfe.rds") # this one
 
 extractedStats <- data.frame(district = outDTF$distid, 
                              date = outDTF$date_start, 
@@ -30,9 +37,9 @@ extractedStats$t46to60 = apply(outDTF[, 123:137], MARGIN = 1, FUN = mean)
 extractedStats$t61to75 = apply(outDTF[, 108:122], MARGIN = 1, FUN = mean)
 extractedStats$t76to90 = apply(outDTF[, 93:107], MARGIN = 1, FUN = mean)
 
-
 ### now add district characteristics 
-districtInfo <- readRDS("/data/tmp/xtai/data/district_ids_with_info.rds")
+# districtInfo <- readRDS("/data/tmp/xtai/data/district_ids_with_info.rds")
+districtInfo <- readRDS("/data/afg_anon/displacement_analysis/district_ids_with_info.rds")
 
 extractedStats <- extractedStats %>%
   left_join(districtInfo %>%
@@ -41,7 +48,8 @@ extractedStats <- extractedStats %>%
   mutate(TOTAL = log(TOTAL))
 
 ############ now add event characteristics 
-load("/data/tmp/xtai/allMyEvents_7-29.Rdata")
+# load("/data/tmp/xtai/allMyEvents_7-29.Rdata")
+load("/data/afg_anon/displacement_analysis/allMyEvents_7-29.Rdata")
 
 ####### peacetime --- this is by district-day
 summarizeEvents <- myEvents %>% 
@@ -56,6 +64,7 @@ tmpEvents$previousEventDate <- c(as.Date(NA), tmpEvents$date_start[-length(tmpEv
 tmpEvents$previousDistid <- c(NA, tmpEvents$distid[-length(tmpEvents$date_start)])
 tmpEvents$previousEventDate[tmpEvents$distid != tmpEvents$previousDistid] <- NA
 tmpEvents$daysFromLastEvent <- as.numeric(difftime(as.Date(tmpEvents$date_start), as.Date(tmpEvents$previousEventDate), units = "days"))
+##### *** 6/25: we are actually missing some that have time > 60 days --- 
 getNAs <- tmpEvents[is.na(tmpEvents$daysFromLastEvent), ] 
 getNAs$fillIn <- NA
 getNAs$fillIn[is.na(getNAs$daysFromLastEvent)] <- as.numeric(difftime(as.Date(getNAs$date_start[is.na(getNAs$daysFromLastEvent)]), as.Date("2013-01-01"), units = "days"))
@@ -85,7 +94,7 @@ summarizeEvents <- myEvents %>%
   summarize(best = sum(best),
             taliban = max(taliban),
             ISIS = max(ISIS),
-            daysFromLastEvent = max(daysFromLastEvent)) # daysFromLastEvent should be unique
+            daysFromLastEvent = max(daysFromLastEvent)) # just for fun --- daysFromLastEvent should be unique
 
 extractedStats <- extractedStats %>%
   mutate(date = as.Date(date)) %>%
@@ -94,16 +103,28 @@ extractedStats <- extractedStats %>%
             by = c("date" = "date_start", "district" = "distid"))
 # 196 obs --- good
 
-saveRDS(extractedStats, file = "/data/tmp/xtai/10-7singleViolence/checks/lfeVersion/12-4fixedExtractedStats.rds")
+extractedStats <- extractedStats %>%
+  mutate(logbest = log(best),
+         logPeace = log(daysFromLastEvent))
 
+
+saveRDS(extractedStats, file = "/data/afg_anon/displacement_analysis/10-7singleViolence/12-4fixedExtractedStats.rds")
+# saveRDS(extractedStats, file = "/data/tmp/xtai/12-3robustnessChecks/12-4fixedExtractedStats.rds")
+
+
+# 12/13: binary version of peace and cas
 ### note: for this set have to remove all references of best != 0 (not taking log so 0's are fine)
 rm(list=ls()); gc()
 library(dplyr); library(ggplot2)
 
-extractedStats <- readRDS("/data/tmp/xtai/10-7singleViolence/checks/lfeVersion/12-4fixedExtractedStats.rds")
+extractedStats <- readRDS("/data/afg_anon/displacement_analysis/10-7singleViolence/12-4fixedExtractedStats.rds")
 forRegs <- extractedStats %>%
   rename(t01to15 = t1to15)
 
+
+# pdf("/data/tmp/xtai/10-7singleViolencePK/12-13regResults_binary.pdf", width = 6, height = 6)
+
+################### 5. reduced model, robust errors
 forPlot <- c()
 outcomeVec <- c("t01to15", "t16to30", "t31to45", "t46to60", "t61to75", "t76to90")
 for (i in 1:length(outcomeVec)){
@@ -137,26 +158,31 @@ plot4 <- forPlot %>%
                       values = scales::viridis_pal(option = "B")(7)) +
   guides(color = guide_legend(override.aes = list(linetype = "blank"))) +  # shape for the type of dot
   labs(#title = paste0("All obs, raw input values, clustered se"),
-       y = "Coefficient estimate",
-       x = NULL,
-       col = "Days since\nviolence")  + # y here because of coord_flip
+    y = "Coefficient estimate",
+    x = NULL,
+    col = "Days since\nviolence")  + # y here because of coord_flip
   theme(legend.position = c(1, 0),
         legend.justification = c("right", "bottom"),
         legend.title = element_text(size=14),
         legend.text = element_text(size=14),
         axis.text=element_text(size=14),
         axis.title=element_text(size=14),
-        axis.text.y = element_text(angle = 90, vjust = 0, hjust = .5)
-        ) +
+        axis.text.y = element_text(
+          # angle = 90, 
+          # vjust = 0,
+          vjust = .5,
+          hjust = 1)
+  ) +
   scale_x_discrete(labels = c("Population\n(log)",
                               "Provincial\ncapital",
                               "Long\npeacetime",
                               "High\ncasualty",
                               "IS")) # bottom to top
 
-
-png(paste0("/data/tmp/xtai/10-7singleViolence/fig3e.png"), width = 5, height = 8, res = 300, units = "in")
+pdf(paste0("/data/afg_anon/displacement_analysis/2-16-22finalFigures/fig3e.pdf"), width = 6, height = 6)
 gridExtra::grid.arrange(plot4, nrow = 1)
 dev.off()
+
+# rsync -P xtai@umtiti.ischool.berkeley.edu:/data/afg_anon/displacement_analysis/2-16-22finalFigures/fig3e.pdf /Users/xtai/Desktop/development/displacementProj/NatureHB/finalGuidelines/finalFigures
 
 ################################## END ##################################
